@@ -1,221 +1,216 @@
-import { useState } from "react";
-import { FiUserPlus, FiX } from "react-icons/fi";
+import { useState, useEffect } from "react";
+import { FiUserPlus, FiX, FiEdit, FiTrash2, FiGlobe, FiInfo } from "react-icons/fi";
+import { getPenNames, createPenName, updatePenName, deletePenName } from "../../services/penNameService";
+import ImageUpload from "../../components/common/ImageUpload";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import slugify from "slugify";
 
-// Pen Name Card component matching the mockup structure
-function PenNameCard({ penName }) {
-  // Renders the correct avatar placeholder (vector SVG illustration) based on type
-  const renderAvatar = () => {
-    if (penName.type === "adam") {
-      return (
-        <svg viewBox="0 0 100 100" className="w-full h-full">
-          <defs>
-            <clipPath id="adamClip">
-              <circle cx="50" cy="50" r="46" />
-            </clipPath>
-            <linearGradient id="adamBg" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#E2F0D9" />
-              <stop offset="100%" stopColor="#8BB888" />
-            </linearGradient>
-          </defs>
-          <g clipPath="url(#adamClip)">
-            <rect width="100" height="100" fill="url(#adamBg)" />
-            <path d="M15 100 Q 30 60 45 100 M 55 100 Q 70 50 85 100" fill="#2E6B40" opacity="0.3" />
-            <circle cx="50" cy="45" r="18" fill="#FCE5CD" />
-            <path d="M32 45 C32 25 68 25 68 45 C68 48 65 52 50 52 C35 52 32 48 32 45 Z" fill="#EAEAEA" />
-            <path d="M35 44 C35 32 65 32 65 44 C65 52 60 55 50 55 C40 55 35 52 35 44 Z" fill="#FCE5CD" />
-            <path d="M43 45 H47 M53 45 H57" stroke="#666" strokeWidth="1" strokeLinecap="round" />
-            <path d="M48 48 Q50 51 52 48" stroke="#D5A6BD" strokeWidth="1" fill="none" />
-            <path d="M45 51 Q50 53 55 51" stroke="#444" strokeWidth="0.8" fill="none" />
-            <path d="M42 50 Q50 51 58 50 C58 52 42 52 42 50 Z" fill="#EAEAEA" />
-            <path d="M38 48 Q50 64 62 48 C62 58 58 64 50 64 C42 64 38 58 38 48 Z" fill="#EAEAEA" />
-            <path d="M32 45 C30 35 38 28 50 28 C62 28 70 35 68 45 C67 40 60 32 50 32 C40 32 33 40 32 45 Z" fill="#D3D3D3" />
-            <path d="M22 100 L35 70 L50 78 L65 70 L78 100 Z" fill="#1C2F42" />
-            <path d="M42 70 L50 78 L58 70 L50 82 Z" fill="#FFFFFF" />
-            <path d="M48 76 L52 76 L50 90 Z" fill="#3D5A80" />
-          </g>
-        </svg>
-      );
-    }
-    if (penName.type === "laura") {
-      return (
-        <svg viewBox="0 0 100 100" className="w-full h-full">
-          <defs>
-            <clipPath id="lauraClip">
-              <circle cx="50" cy="50" r="46" />
-            </clipPath>
-            <linearGradient id="lauraBg" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#FAD0C4" />
-              <stop offset="100%" stopColor="#FFD1FF" />
-            </linearGradient>
-          </defs>
-          <g clipPath="url(#lauraClip)">
-            <rect width="100" height="100" fill="url(#lauraBg)" />
-            <circle cx="80" cy="70" r="25" fill="#FFEAA7" opacity="0.4" />
-            <circle cx="34" cy="46" r="16" fill="#A75D3B" />
-            <circle cx="66" cy="46" r="16" fill="#A75D3B" />
-            <circle cx="50" cy="34" r="18" fill="#A75D3B" />
-            <circle cx="50" cy="47" r="15" fill="#FEE1D3" />
-            <path d="M35 38 Q50 30 65 38 C60 48 55 45 50 48 C45 45 40 48 35 38 Z" fill="#C06C47" />
-            <path d="M32 46 Q30 65 37 72 C37 60 40 55 38 48 Z" fill="#C06C47" />
-            <path d="M68 46 Q70 65 63 72 C63 60 60 55 62 48 Z" fill="#C06C47" />
-            <circle cx="44" cy="46" r="4" fill="none" stroke="#3A2218" strokeWidth="1.2" />
-            <circle cx="56" cy="46" r="4" fill="none" stroke="#3A2218" strokeWidth="1.2" />
-            <line x1="48" y1="46" x2="52" y2="46" stroke="#3A2218" strokeWidth="1.2" />
-            <circle cx="44" cy="46" r="1.5" fill="#333" />
-            <circle cx="56" cy="46" r="1.5" fill="#333" />
-            <path d="M49 50 Q50 51 51 50" stroke="#C06C47" strokeWidth="1" fill="none" />
-            <path d="M47 54 Q50 57 53 54" stroke="#8C251C" strokeWidth="0.8" fill="none" />
-            <path d="M26 100 Q35 74 50 74 Q65 74 74 100 Z" fill="#2E5A44" />
-            <path d="M42 74 Q50 82 58 74" stroke="#DCD0BD" strokeWidth="2" fill="none" />
-          </g>
-        </svg>
-      );
-    }
-    
-    // Default initials avatar for Lucien Hart and new dynamic ones
-    const initials = penName.name 
-      ? penName.name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() 
-      : "PN";
-    return (
-      <div className="w-full h-full rounded-full bg-[#112318] text-[#FDFBF7] flex items-center justify-center font-serif font-bold text-xl select-none">
-        {initials}
-      </div>
-    );
-  };
+function PenNameCard({ penName, onEdit, onDelete }) {
+  // Initials fallback
+  const initials = penName.name 
+    ? penName.name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() 
+    : "PN";
 
   return (
     <div className="bg-white border border-[#E5E3DC]/60 rounded-[32px] p-8 shadow-sm flex flex-col items-center text-center space-y-6 relative hover:shadow-md transition-all duration-200">
       
-      {/* Outer Golden Border frame for avatar circle */}
+      {/* Edit/Delete overlay buttons */}
+      <div className="absolute top-6 right-6 flex items-center gap-1">
+        <button
+          onClick={() => onEdit(penName)}
+          className="p-2 border border-[#E5E3DC]/60 text-charcoal/40 hover:text-gold hover:border-gold/30 hover:bg-gold/5 rounded-lg transition-colors cursor-pointer"
+          title="Edit Profile"
+        >
+          <FiEdit size={13} />
+        </button>
+        <button
+          onClick={() => onDelete(penName.id)}
+          className="p-2 border border-[#E5E3DC]/60 text-charcoal/40 hover:text-red-500 hover:border-red-200 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+          title="Delete Profile"
+        >
+          <FiTrash2 size={13} />
+        </button>
+      </div>
+
+      {/* Avatar portrait circle */}
       <div className="w-24 h-24 rounded-full p-1 border border-[#C5A880] flex items-center justify-center select-none shrink-0">
-        <div className="w-full h-full rounded-full overflow-hidden shadow-inner">
-          {renderAvatar()}
+        <div className="w-full h-full rounded-full overflow-hidden shadow-inner bg-[#112318] flex items-center justify-center">
+          {penName.profileImage ? (
+            <img src={penName.profileImage} alt={penName.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-serif font-bold text-xl text-[#FDFBF7]">{initials}</span>
+          )}
         </div>
       </div>
 
-      <div className="space-y-2 select-none">
+      <div className="space-y-2 select-none w-full">
         {/* Status Badge */}
-        <span className="inline-block px-3 py-0.5 bg-[#E2F0D9] text-[#2E6B40] rounded-full text-[9px] font-bold tracking-wider uppercase">
-          {penName.status || "Active"}
+        <span className={`inline-block px-3 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase ${
+          penName.status === "active" ? "bg-[#E2F0D9] text-[#2E6B40]" : "bg-gray-100 text-gray-500"
+        }`}>
+          {penName.status || "active"}
         </span>
 
         {/* Display Name */}
-        <h3 className="font-serif font-bold text-2xl text-charcoal leading-tight">
+        <h3 className="font-serif font-bold text-2xl text-charcoal leading-tight truncate">
           {penName.name}
         </h3>
 
         {/* Primary Genre / Subtitle */}
-        <p className="text-xs font-semibold text-[#C5A880] tracking-wide font-sans">
-          {penName.genre}
+        <p className="text-xs font-semibold text-[#C5A880] tracking-wide font-sans truncate">
+          {penName.genreFocus || "General Fiction"}
         </p>
       </div>
 
       {/* Divider */}
       <div className="w-full h-px bg-[#E5E3DC]/60" />
 
-      {/* 2-Column Metrics */}
-      <div className="w-full grid grid-cols-2 gap-4">
-        
-        {/* Published books */}
-        <div className="space-y-0.5 select-none">
-          <span className="block text-[9px] uppercase font-bold text-charcoal/40 tracking-wider">
-            Published
-          </span>
-          <span className="block text-2xl font-bold text-charcoal font-sans">
-            {penName.books}
-          </span>
-          <span className="block text-[9px] uppercase font-bold text-charcoal/40 tracking-wider">
-            Books
-          </span>
-        </div>
-
-        {/* Subscribers / Followers */}
-        <div className="space-y-0.5 border-l border-[#E5E3DC]/50 select-none">
-          <span className="block text-[9px] uppercase font-bold text-charcoal/40 tracking-wider">
-            Subscribers
-          </span>
-          <span className="block text-2xl font-bold text-charcoal font-sans">
-            {penName.followers}
-          </span>
-          <span className="block text-[9px] uppercase font-bold text-charcoal/40 tracking-wider">
-            Followers
-          </span>
-        </div>
-
-      </div>
+      {/* Bio snippet */}
+      <p className="text-xs text-charcoal/60 leading-relaxed font-sans line-clamp-3 w-full h-12">
+        {penName.shortBio || "No biographical tease provided yet."}
+      </p>
 
     </div>
   );
 }
 
 export default function AdminPenNames() {
-  const [penNames, setPenNames] = useState([
-    {
-      id: "1",
-      name: "Adam Woodrow",
-      genre: "High Fantasy",
-      status: "ACTIVE",
-      books: 12,
-      followers: "4.2k",
-      type: "adam"
-    },
-    {
-      id: "2",
-      name: "Laura Dutton",
-      genre: "Paranormal Romance",
-      status: "ACTIVE",
-      books: 8,
-      followers: "2.8k",
-      type: "laura"
-    },
-    {
-      id: "3",
-      name: "Lucien Hart",
-      genre: "MM Romance",
-      status: "ACTIVE",
-      books: 5,
-      followers: "1.5k",
-      type: "lucien"
-    }
-  ]);
+  const [penNames, setPenNames] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Modal creation states
+  // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editId, setEditId] = useState(null); // Null for create, ID string for edit
   const [name, setName] = useState("");
-  const [genre, setGenre] = useState("");
-  const [booksCount, setBooksCount] = useState("0");
-  const [followersCount, setFollowersCount] = useState("0");
+  const [slug, setSlug] = useState("");
+  const [shortBio, setShortBio] = useState("");
+  const [fullBio, setFullBio] = useState("");
+  const [genreFocus, setGenreFocus] = useState("");
+  const [profileImage, setProfileImage] = useState("");
+  const [socialLinks, setSocialLinks] = useState({ twitter: "", instagram: "", facebook: "" });
+  const [displayOrder, setDisplayOrder] = useState("0");
+  const [featured, setFeatured] = useState(false);
+  const [status, setStatus] = useState("active");
+  
+  const [isSlugTouched, setIsSlugTouched] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleCreate = (e) => {
+  const loadPenNames = async () => {
+    setLoading(true);
+    try {
+      const data = await getPenNames();
+      setPenNames(data);
+    } catch (err) {
+      console.error("Failed to load pen names:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPenNames();
+  }, []);
+
+  // Update slug automatically when typing name (if slug hasn't been edited manually)
+  const handleNameChange = (val) => {
+    setName(val);
+    if (!isSlugTouched && !editId) {
+      setSlug(slugify(val, { lower: true, strict: true }));
+    }
+  };
+
+  const handleEdit = (profile) => {
+    setEditId(profile.id);
+    setName(profile.name || "");
+    setSlug(profile.slug || "");
+    setShortBio(profile.shortBio || "");
+    setFullBio(profile.fullBio || "");
+    setGenreFocus(profile.genreFocus || "");
+    setProfileImage(profile.profileImage || "");
+    setSocialLinks(profile.socialLinks || { twitter: "", instagram: "", facebook: "" });
+    setDisplayOrder(profile.displayOrder || "0");
+    setFeatured(profile.featured || false);
+    setStatus(profile.status || "active");
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to permanently delete this pen name? All books using this pen name will show a 'N/A' author focus.")) {
+      try {
+        await deletePenName(id);
+        setPenNames(prev => prev.filter(p => p.id !== id));
+        alert("Pen name deleted successfully.");
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete pen name.");
+      }
+    }
+  };
+
+  const handleOpenCreate = () => {
+    setEditId(null);
+    setName("");
+    setSlug("");
+    setShortBio("");
+    setFullBio("");
+    setGenreFocus("");
+    setProfileImage("");
+    setSocialLinks({ twitter: "", instagram: "", facebook: "" });
+    setDisplayOrder("0");
+    setFeatured(false);
+    setStatus("active");
+    setIsSlugTouched(false);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
+    if (!slug.trim()) return;
 
-    // Convert follower input to correct string representation (e.g. adding 'k' if large)
-    let formattedFollowers = followersCount;
-    const num = parseFloat(followersCount);
-    if (!isNaN(num) && num >= 1000) {
-      formattedFollowers = (num / 1000).toFixed(1) + "k";
-    }
-
-    const newPersona = {
-      id: (penNames.length + 1).toString(),
+    setSaving(true);
+    const profilePayload = {
       name: name.trim(),
-      genre: genre.trim() || "Unspecified Genre",
-      status: "ACTIVE",
-      books: parseInt(booksCount) || 0,
-      followers: formattedFollowers || "0",
-      type: "initials"
+      slug: slug.trim(),
+      shortBio: shortBio.trim(),
+      fullBio: fullBio.trim(),
+      genreFocus: genreFocus.trim(),
+      profileImage: profileImage,
+      socialLinks: socialLinks,
+      displayOrder: parseInt(displayOrder) || 0,
+      featured: featured,
+      status: status
     };
 
-    setPenNames([...penNames, newPersona]);
-    setIsModalOpen(false);
-
-    // Reset fields
-    setName("");
-    setGenre("");
-    setBooksCount("0");
-    setFollowersCount("0");
+    try {
+      if (editId) {
+        // Edit mode
+        await updatePenName(editId, profilePayload);
+        setPenNames(prev => prev.map(p => p.id === editId ? { id: editId, ...profilePayload } : p));
+        alert("Pen name updated successfully.");
+      } else {
+        // Create mode
+        const newId = await createPenName(profilePayload);
+        setPenNames(prev => [...prev, { id: newId, ...profilePayload }]);
+        alert("Pen name created successfully.");
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save pen name document. Please verify environment keys.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
+        <LoadingSpinner className="w-10 h-10 text-forest" />
+        <p className="text-xs text-charcoal/50 uppercase tracking-widest font-bold">Synchronizing database indices...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 font-sans text-left pb-16">
@@ -233,7 +228,7 @@ export default function AdminPenNames() {
 
         {/* Gold Add Button */}
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenCreate}
           className="px-6 py-3 bg-[#FCE5CD] hover:bg-[#C5A880] text-[#7A5B36] hover:text-[#0A180E] font-sans font-bold text-xs uppercase tracking-wider rounded-full shadow transition-all duration-150 flex items-center gap-2 cursor-pointer shrink-0"
         >
           <FiUserPlus size={14} />
@@ -246,13 +241,18 @@ export default function AdminPenNames() {
         
         {/* Render Active Profiles */}
         {penNames.map((pen) => (
-          <PenNameCard key={pen.id} penName={pen} />
+          <PenNameCard 
+            key={pen.id} 
+            penName={pen} 
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         ))}
 
         {/* Dashed Create Card */}
         <div 
-          onClick={() => setIsModalOpen(true)}
-          className="border-2 border-dashed border-[#E5E3DC] hover:border-gold rounded-[32px] p-8 flex flex-col items-center justify-center min-h-[340px] cursor-pointer transition-all duration-150 text-center bg-transparent group space-y-4 shadow-sm hover:shadow-md"
+          onClick={handleOpenCreate}
+          className="border-2 border-dashed border-[#E5E3DC] hover:border-gold rounded-[32px] p-8 flex flex-col items-center justify-center min-h-[340px] cursor-pointer transition-all duration-155 text-center bg-transparent group space-y-4 shadow-sm hover:shadow-md"
         >
           <div className="w-16 h-16 rounded-full bg-[#F5F4F0] text-charcoal/40 group-hover:bg-[#C5A880]/15 group-hover:text-gold flex items-center justify-center transition-colors">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
@@ -266,11 +266,11 @@ export default function AdminPenNames() {
 
       </div>
 
-      {/* 3. INTERACTIVE SLIDE-OVER MODAL DIALOG */}
+      {/* 3. INTERACTIVE MODAL DIALOG */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-[#0F1D13]/55 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 bg-[#0F1D13]/55 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto animate-fade-in">
           
-          <div className="bg-white rounded-[32px] p-8 max-w-md w-full border border-[#E5E3DC] shadow-2xl relative space-y-6 text-left">
+          <div className="bg-white rounded-[32px] p-8 max-w-lg w-full border border-[#E5E3DC] shadow-2xl relative space-y-6 text-left my-8">
             
             {/* Close trigger */}
             <button
@@ -283,78 +283,141 @@ export default function AdminPenNames() {
             {/* Modal Title */}
             <div className="space-y-1 border-b border-[#E5E3DC]/60 pb-3">
               <h3 className="font-serif font-bold text-2xl text-charcoal">
-                Create New Pen Name
+                {editId ? "Edit Pen Name Profile" : "Create New Pen Name"}
               </h3>
               <p className="text-[11px] text-charcoal/50 font-sans font-light">
-                Introduce a new literary persona to your author catalog.
+                Introduce or adjust a literary persona under your publishing brand.
               </p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-4">
               
-              {/* Pen Name */}
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">
-                  Pen Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Laura Dutton"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-gold text-charcoal font-sans font-semibold transition-colors"
-                />
-              </div>
-
-              {/* Primary Genre */}
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">
-                  Primary Genre / Subtitle
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Paranormal Romance"
-                  value={genre}
-                  onChange={(e) => setGenre(e.target.value)}
-                  className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-gold text-charcoal font-sans font-semibold transition-colors"
-                />
-              </div>
-
-              {/* 2-Column fields for initial numbers */}
-              <div className="grid grid-cols-2 gap-4">
-                
-                {/* Books count */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Pen Name */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">
-                    Books Published
+                    Pen Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Laura Dutton"
+                    value={name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-gold text-charcoal font-sans font-semibold transition-colors"
+                  />
+                </div>
+
+                {/* Slug */}
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">
+                    URL Slug
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="laura-dutton"
+                    value={slug}
+                    onChange={(e) => {
+                      setIsSlugTouched(true);
+                      setSlug(e.target.value);
+                    }}
+                    className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-gold text-charcoal font-mono transition-colors"
+                  />
+                </div>
+
+                {/* Primary Genre Focus */}
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">
+                    Primary Genre Focus
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Paranormal Romance"
+                    value={genreFocus}
+                    onChange={(e) => setGenreFocus(e.target.value)}
+                    className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-gold text-charcoal font-sans font-semibold transition-colors"
+                  />
+                </div>
+
+                {/* Display Order */}
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">
+                    Display Order
                   </label>
                   <input
                     type="number"
                     min="0"
-                    value={booksCount}
-                    onChange={(e) => setBooksCount(e.target.value)}
-                    className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-gold text-charcoal font-sans font-semibold transition-colors"
+                    value={displayOrder}
+                    onChange={(e) => setDisplayOrder(e.target.value)}
+                    className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-gold text-charcoal font-sans font-semibold transition-colors"
                   />
                 </div>
+              </div>
 
-                {/* Followers count */}
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">
-                    Subscribers / Followers
-                  </label>
+              {/* Short Bio */}
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">
+                  Short Teaser Bio
+                </label>
+                <input
+                  type="text"
+                  placeholder="A one-sentence bio hook displayed on cards..."
+                  value={shortBio}
+                  onChange={(e) => setShortBio(e.target.value)}
+                  className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-gold text-charcoal font-sans transition-colors"
+                />
+              </div>
+
+              {/* Full Bio */}
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">
+                  Full Biography
+                </label>
+                <textarea
+                  rows="3"
+                  placeholder="Detail novel list, backgrounds, and inspirations..."
+                  value={fullBio}
+                  onChange={(e) => setFullBio(e.target.value)}
+                  className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-gold text-charcoal font-sans transition-colors leading-relaxed"
+                ></textarea>
+              </div>
+
+              {/* Upload Portrait */}
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-charcoal/50 tracking-widest block font-sans">Profile Portrait</span>
+                <ImageUpload 
+                  value={profileImage}
+                  onChange={(result) => setProfileImage(result ? result.url : "")}
+                  folder="pen-names"
+                />
+              </div>
+
+              {/* Toggles */}
+              <div className="grid grid-cols-2 gap-4 bg-[#FBFBF9] border border-[#E5E3DC]/60 p-3.5 rounded-2xl select-none text-xs font-semibold text-charcoal">
+                <label className="flex items-center justify-between cursor-pointer pr-4 border-r border-[#E5E3DC]/40">
+                  <span>Featured Profile</span>
                   <input
-                    type="number"
-                    min="0"
-                    value={followersCount}
-                    placeholder="e.g. 2800"
-                    onChange={(e) => setFollowersCount(e.target.value)}
-                    className="w-full bg-[#F5F4F0]/60 border border-[#E5E3DC] rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-gold text-charcoal font-sans font-semibold transition-colors"
+                    type="checkbox"
+                    checked={featured}
+                    onChange={(e) => setFeatured(e.target.checked)}
+                    className="rounded border-[#E5E3DC] text-forest focus:ring-forest-light h-4 w-4 cursor-pointer"
                   />
-                </div>
+                </label>
 
+                <div className="flex items-center justify-between pl-4">
+                  <span>Profile Status</span>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-charcoal outline-none cursor-pointer"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
               </div>
 
               {/* Actions row */}
@@ -368,9 +431,17 @@ export default function AdminPenNames() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-[#0A180E] hover:bg-gold text-white hover:text-[#0A180E] font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-[#0A180E] hover:bg-gold text-white hover:text-[#0A180E] font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  Add Persona
+                  {saving ? (
+                    <>
+                      <LoadingSpinner className="w-3 h-3 text-white" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Persona</span>
+                  )}
                 </button>
               </div>
 

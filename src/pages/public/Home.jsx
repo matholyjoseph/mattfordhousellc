@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import { 
@@ -6,29 +7,122 @@ import {
 } from "react-icons/fi";
 import Container from "../../components/layout/Container";
 import Button from "../../components/common/Button";
-import { mockBooks } from "../../data/mockData";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import { getBooks } from "../../services/bookService";
+import { getGenres } from "../../services/genreService";
+import { createSubscriber } from "../../services/subscriberService";
+
+const getGenreIcon = (name) => {
+  const n = name.toLowerCase();
+  if (n.includes("werewolf") || n.includes("wolf") || n.includes("vampire") || n.includes("moon")) return <FiMoon className="text-gold" size={20} />;
+  if (n.includes("billionaire") || n.includes("corporate") || n.includes("boss") || n.includes("trending")) return <FiTrendingUp className="text-gold" size={20} />;
+  if (n.includes("mm") || n.includes("lgbt") || n.includes("gay") || n.includes("check")) return <FiCheckCircle className="text-gold" size={20} />;
+  if (n.includes("choose") || n.includes("romance") || n.includes("love") || n.includes("message")) return <FiMessageSquare className="text-gold" size={20} />;
+  if (n.includes("cook") || n.includes("recipe") || n.includes("food") || n.includes("layers")) return <FiLayers className="text-gold" size={20} />;
+  if (n.includes("work") || n.includes("guide") || n.includes("journal") || n.includes("book")) return <FiBookOpen className="text-gold" size={20} />;
+  if (n.includes("companion") || n.includes("map") || n.includes("compass")) return <FiCompass className="text-gold" size={20} />;
+  return <FiGlobe className="text-gold" size={20} />;
+};
 
 export default function Home() {
-  const genresList = [
-    { name: "Werewolf Romance", count: 12, icon: <FiMoon className="text-gold" size={20} /> },
-    { name: "Billionaire Romance", count: 8, icon: <FiTrendingUp className="text-gold" size={20} /> },
-    { name: "MM Romance", count: 15, icon: <FiCheckCircle className="text-gold" size={20} /> },
-    { name: "Why Choose", count: 4, icon: <FiMessageSquare className="text-gold" size={20} /> },
-    { name: "Cookbooks", count: 4, icon: <FiLayers className="text-gold" size={20} /> },
-    { name: "Workbooks", count: 2, icon: <FiBookOpen className="text-gold" size={20} /> },
-    { name: "Companion Guides", count: 5, icon: <FiCompass className="text-gold" size={20} /> },
-    { name: "Translated", count: 18, icon: <FiGlobe className="text-gold" size={20} /> },
+  const [books, setBooks] = useState([]);
+  const [genres, setGenres] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Newsletter State
+  const [subName, setSubName] = useState("");
+  const [subEmail, setSubEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribedMsg, setSubscribedMsg] = useState("");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [fetchedBooks, fetchedGenres] = await Promise.all([
+          getBooks(),
+          getGenres()
+        ]);
+        
+        // Show only published or comingSoon books to public
+        const publicBooks = fetchedBooks.filter(b => b.status === "published" || b.status === "comingSoon");
+        setBooks(publicBooks);
+        setGenres(fetchedGenres);
+      } catch (err) {
+        console.error("Error fetching homepage elements:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    if (!subName.trim() || !subEmail.trim()) return;
+    try {
+      setSubscribing(true);
+      await createSubscriber({
+        fullName: subName.trim(),
+        email: subEmail.trim(),
+        source: "homepage"
+      });
+      setSubName("");
+      setSubEmail("");
+      setSubscribedMsg("Thank you for joining our private literary circle!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to subscribe. Please try again.");
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 bg-cream">
+        <LoadingSpinner className="w-10 h-10 text-forest" />
+        <p className="text-xs text-charcoal/50 uppercase tracking-widest font-bold font-sans">Curating landing exhibition...</p>
+      </div>
+    );
+  }
+
+  // Get covers for Hero Section (fallback to assets if empty)
+  const coverBooks = books.filter(b => b.coverImage && b.coverImage.trim() !== "").slice(0, 4);
+  const coverSrcs = [
+    coverBooks[0]?.coverImage || "/whispers_in_the_pines.png",
+    coverBooks[1]?.coverImage || "/emerald_crown.png",
+    coverBooks[2]?.coverImage || "/sinking_roots.png",
+    coverBooks[3]?.coverImage || "/glass_orchard.png"
+  ];
+  const coverSlugs = [
+    coverBooks[0]?.slug || "whispers-in-the-pines",
+    coverBooks[1]?.slug || "the-emerald-crown",
+    coverBooks[2]?.slug || "sinking-roots",
+    coverBooks[3]?.slug || "the-glass-orchard"
   ];
 
-  // Helper to color-code status badges like the design
+  // Latest Release slug link
+  const latestBook = books[0] || { slug: "whispers-in-the-pines" };
+
+  // Featured Collection: books where featured === true. Fallback to first 4 books.
+  const featuredBooks = books.filter(b => b.featured === true).slice(0, 4);
+  const displayedFeatured = featuredBooks.length > 0 ? featuredBooks : books.slice(0, 4);
+
+  // Genre counts
+  const getGenreCount = (genreName) => books.filter(b => b.genre && b.genre.toLowerCase() === genreName.toLowerCase()).length;
+  const genresList = genres.slice(0, 8).map(g => ({
+    name: g.name,
+    count: getGenreCount(g.name),
+    icon: getGenreIcon(g.name)
+  }));
+
   const getBadgeClass = (status) => {
     switch (status) {
-      case "New Release":
+      case "published":
         return "bg-[#EBE2D5] text-forest-dark border-gold/10";
-      case "Cookbook":
-        return "bg-cream-dark text-forest-light border-gold/10";
-      case "Workbook":
-        return "bg-blue-50 text-blue-900 border-blue-100";
+      case "comingSoon":
+        return "bg-amber-50 text-amber-800 border-amber-100";
       default:
         return "bg-[#F7EFE5] text-gold-dark border-gold/20";
     }
@@ -61,7 +155,7 @@ export default function Home() {
                 <Button to="/books" variant="secondary" className="rounded-full px-8 font-bold text-xs uppercase tracking-wider">
                   Explore Books
                 </Button>
-                <Button to="/books/whispers-in-the-pines" variant="outline" className="rounded-full px-8 text-cream border-cream/35 hover:bg-cream/10 hover:border-cream font-bold text-xs uppercase tracking-wider">
+                <Button to={`/books/${latestBook.slug}`} variant="outline" className="rounded-full px-8 text-cream border-cream/35 hover:bg-cream/10 hover:border-cream font-bold text-xs uppercase tracking-wider">
                   Latest Release
                 </Button>
               </div>
@@ -71,60 +165,68 @@ export default function Home() {
             <div className="lg:col-span-6 flex justify-center items-center h-[340px] relative mt-12 lg:mt-0 px-6">
               <div className="flex items-center justify-center -space-x-12 relative w-full max-w-lg">
                 
-                {/* Whispers in the Pines */}
+                {/* Book 1 */}
                 <motion.div 
                   className="w-40 sm:w-44 aspect-[2/3] transform rotate-[-12deg] -translate-y-4 hover:translate-y-[-12px] hover:rotate-[-8deg] transition-luxury hover:z-30 cursor-pointer"
                   initial={{ opacity: 0, x: -50, rotate: -20 }}
                   animate={{ opacity: 1, x: 0, rotate: -12 }}
                   transition={{ duration: 0.8, delay: 0.2 }}
                 >
-                  <img
-                    src="/whispers_in_the_pines.png"
-                    alt="Whispers in the Pines"
-                    className="w-full h-full object-cover rounded shadow-2xl border border-white/10"
-                  />
+                  <Link to={`/books/${coverSlugs[0]}`}>
+                    <img
+                      src={coverSrcs[0]}
+                      alt="Layered cover book 1"
+                      className="w-full h-full object-cover rounded shadow-2xl border border-white/10"
+                    />
+                  </Link>
                 </motion.div>
 
-                {/* The Emerald Crown */}
+                {/* Book 2 */}
                 <motion.div 
                   className="w-44 sm:w-48 aspect-[2/3] transform rotate-[-4deg] translate-y-2 hover:translate-y-[-6px] hover:rotate-[0deg] transition-luxury z-10 hover:z-30 cursor-pointer"
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 2 }}
                   transition={{ duration: 0.8, delay: 0.1 }}
                 >
-                  <img
-                    src="/emerald_crown.png"
-                    alt="The Emerald Crown"
-                    className="w-full h-full object-cover rounded shadow-2xl border border-white/10"
-                  />
+                  <Link to={`/books/${coverSlugs[1]}`}>
+                    <img
+                      src={coverSrcs[1]}
+                      alt="Layered cover book 2"
+                      className="w-full h-full object-cover rounded shadow-2xl border border-white/10"
+                    />
+                  </Link>
                 </motion.div>
 
-                {/* Sinking Roots */}
+                {/* Book 3 */}
                 <motion.div 
                   className="w-44 sm:w-48 aspect-[2/3] transform rotate-[4deg] translate-y-0 hover:translate-y-[-8px] hover:rotate-[0deg] transition-luxury z-15 hover:z-30 cursor-pointer"
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
                 >
-                  <img
-                    src="/sinking_roots.png"
-                    alt="Sinking Roots"
-                    className="w-full h-full object-cover rounded shadow-2xl border border-white/10"
-                  />
+                  <Link to={`/books/${coverSlugs[2]}`}>
+                    <img
+                      src={coverSrcs[2]}
+                      alt="Layered cover book 3"
+                      className="w-full h-full object-cover rounded shadow-2xl border border-white/10"
+                    />
+                  </Link>
                 </motion.div>
 
-                {/* The Glass Orchard */}
+                {/* Book 4 */}
                 <motion.div 
                   className="w-40 sm:w-44 aspect-[2/3] transform rotate-[12deg] -translate-y-4 hover:translate-y-[-12px] hover:rotate-[8deg] transition-luxury hover:z-30 cursor-pointer"
                   initial={{ opacity: 0, x: 50, rotate: 20 }}
                   animate={{ opacity: 1, x: 0, rotate: 12 }}
                   transition={{ duration: 0.8, delay: 0.4 }}
                 >
-                  <img
-                    src="/glass_orchard.png"
-                    alt="The Glass Orchard"
-                    className="w-full h-full object-cover rounded shadow-2xl border border-white/10"
-                  />
+                  <Link to={`/books/${coverSlugs[3]}`}>
+                    <img
+                      src={coverSrcs[3]}
+                      alt="Layered cover book 4"
+                      className="w-full h-full object-cover rounded shadow-2xl border border-white/10"
+                    />
+                  </Link>
                 </motion.div>
 
               </div>
@@ -151,97 +253,111 @@ export default function Home() {
             <div className="h-0.5 w-16 bg-gold mx-auto" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {mockBooks.map((book) => (
-              <motion.div 
-                key={book.id}
-                className="group flex flex-col justify-between"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-              >
-                <Link to={`/books/${book.slug}`} className="block relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-cream-dark mb-4">
-                  <img
-                    src={book.coverUrl}
-                    alt={book.title}
-                    className="w-full h-full object-cover book-shadow book-shadow-hover rounded-lg"
-                  />
-                </Link>
-
-                <div className="space-y-2 mt-2">
-                  <div className="flex items-center">
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 border rounded-full font-sans ${getBadgeClass(book.status)}`}>
-                      {book.status}
-                    </span>
-                  </div>
-                  <h3 className="font-serif font-bold text-lg text-forest-dark line-clamp-1 group-hover:text-gold transition-colors">
-                    {book.title}
-                  </h3>
-                  <span className="text-[10px] text-charcoal-light font-sans font-medium">
-                    By {book.penName}
-                  </span>
-                  <p className="text-xs text-charcoal-light line-clamp-2 leading-relaxed font-sans font-light">
-                    {book.description}
-                  </p>
-                  <Link 
-                    to={`/books/${book.slug}`}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-forest-dark hover:text-gold uppercase tracking-wider pt-2 border-b border-transparent hover:border-gold transition-luxury w-fit"
-                  >
-                    View Book <FiArrowRight size={12} />
+          {displayedFeatured.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {displayedFeatured.map((book) => (
+                <motion.div 
+                  key={book.id}
+                  className="group flex flex-col justify-between text-left"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Link to={`/books/${book.slug}`} className="block relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-cream-dark mb-4 border border-gold/10 shadow-sm">
+                    {book.coverImage ? (
+                      <img
+                        src={book.coverImage}
+                        alt={book.title}
+                        className="w-full h-full object-cover book-shadow book-shadow-hover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-[#122217] to-forest-dark text-gold font-serif">
+                        <span className="font-bold text-center text-sm">{book.title}</span>
+                      </div>
+                    )}
                   </Link>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+
+                  <div className="space-y-2 mt-2">
+                    <div className="flex items-center">
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 border rounded-full font-sans ${getBadgeClass(book.status)}`}>
+                        {book.status === "published" ? "Published" : book.status === "comingSoon" ? "Coming Soon" : "Draft"}
+                      </span>
+                    </div>
+                    <h3 className="font-serif font-bold text-lg text-forest-dark line-clamp-1 group-hover:text-gold transition-colors">
+                      {book.title}
+                    </h3>
+                    <span className="text-[10px] text-charcoal-light font-sans font-medium block">
+                      By {book.penName || "Elias Thorne"}
+                    </span>
+                    <p className="text-xs text-charcoal-light line-clamp-2 leading-relaxed font-sans font-light">
+                      {book.shortHook || book.subtitle || "Dive into this captivating publication from Elias Thorne's catalog."}
+                    </p>
+                    <Link 
+                      to={`/books/${book.slug}`}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-forest-dark hover:text-gold uppercase tracking-wider pt-2 border-b border-transparent hover:border-gold transition-luxury w-fit mt-1"
+                    >
+                      View Book <FiArrowRight size={12} />
+                    </Link>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-charcoal/45 italic text-sm">
+              No featured novels catalogued yet.
+            </div>
+          )}
         </Container>
       </section>
 
       {/* 3. BROWSE BY GENRE */}
-      <section className="py-20 bg-cream-dark/20 border-y border-gold/10">
-        <Container>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 gap-4">
-            <div>
-              <h2 className="text-3xl font-serif font-bold text-forest-dark tracking-tight">
-                Browse Your Favorites
-              </h2>
-              <p className="text-xs sm:text-sm text-charcoal-light font-light mt-1 font-sans">
-                Explore diverse narratives and practical knowledge across our related genre collections.
-              </p>
-            </div>
-            <Link
-              to="/books"
-              className="text-xs font-bold uppercase tracking-widest text-forest-light hover:text-gold transition-colors underline decoration-gold underline-offset-4 shrink-0"
-            >
-              View All Genres
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {genresList.map((genre, i) => (
-              <motion.div
-                key={genre.name}
-                className="bg-white border border-gold/15 p-5 rounded-lg flex items-center justify-between hover:shadow-md transition-luxury cursor-pointer"
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: i * 0.05 }}
+      {genresList.length > 0 && (
+        <section className="py-20 bg-cream-dark/20 border-y border-gold/10">
+          <Container>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 gap-4">
+              <div>
+                <h2 className="text-3xl font-serif font-bold text-forest-dark tracking-tight">
+                  Browse Your Favorites
+                </h2>
+                <p className="text-xs sm:text-sm text-charcoal-light font-light mt-1 font-sans">
+                  Explore diverse narratives and practical knowledge across our related genre collections.
+                </p>
+              </div>
+              <Link
+                to="/books"
+                className="text-xs font-bold uppercase tracking-widest text-forest-light hover:text-gold transition-colors underline decoration-gold underline-offset-4 shrink-0"
               >
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-cream rounded-full border border-gold/10">
-                    {genre.icon}
+                View All Genres
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {genresList.map((genre, i) => (
+                <motion.div
+                  key={genre.name}
+                  className="bg-white border border-gold/15 p-5 rounded-lg flex items-center justify-between hover:shadow-md transition-luxury cursor-pointer"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-cream rounded-full border border-gold/10">
+                      {genre.icon}
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-serif font-bold text-sm text-forest-dark">{genre.name}</h4>
+                      <span className="text-[10px] text-charcoal-light font-sans font-light">{genre.count} Books</span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-serif font-bold text-sm text-forest-dark">{genre.name}</h4>
-                    <span className="text-[10px] text-charcoal-light font-sans font-light">{genre.count} Books</span>
-                  </div>
-                </div>
-                <FiArrowRight size={14} className="text-gold/60" />
-              </motion.div>
-            ))}
-          </div>
-        </Container>
-      </section>
+                  <FiArrowRight size={14} className="text-gold/60" />
+                </motion.div>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
 
       {/* 4. ABOUT BRAND */}
       <section>
@@ -289,8 +405,8 @@ export default function Home() {
         <Container>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { val: "45+", label: "Published Works" },
-              { val: "12", label: "Genres Explored" },
+              { val: `${books.length}`, label: "Published Works" },
+              { val: `${genres.length}`, label: "Genres Explored" },
               { val: "1M+", label: "Reader Reviews" },
               { val: "15", label: "Global Platforms" }
             ].map((stat, i) => (
@@ -317,29 +433,40 @@ export default function Home() {
             </p>
           </div>
 
-          <form 
-            onSubmit={(e) => { e.preventDefault(); alert("Subscribed!"); }}
-            className="flex flex-col sm:flex-row gap-3 justify-center items-stretch max-w-xl mx-auto"
-          >
-            <input
-              type="text"
-              required
-              placeholder="First Name"
-              className="px-4 py-3 bg-white border border-gold/20 rounded focus:outline-none focus:ring-1 focus:ring-gold text-xs text-charcoal flex-1"
-            />
-            <input
-              type="email"
-              required
-              placeholder="Email Address"
-              className="px-4 py-3 bg-white border border-gold/20 rounded focus:outline-none focus:ring-1 focus:ring-gold text-xs text-charcoal flex-1"
-            />
-            <button
-              type="submit"
-              className="px-8 py-3 bg-gold hover:bg-gold-light text-forest-dark font-sans font-bold text-xs uppercase tracking-widest rounded shadow transition-luxury cursor-pointer"
+          {subscribedMsg ? (
+            <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-2xl text-sm font-semibold max-w-md mx-auto">
+              {subscribedMsg}
+            </div>
+          ) : (
+            <form 
+              onSubmit={handleSubscribe}
+              className="flex flex-col sm:flex-row gap-3 justify-center items-stretch max-w-xl mx-auto"
             >
-              Subscribe
-            </button>
-          </form>
+              <input
+                type="text"
+                required
+                value={subName}
+                onChange={(e) => setSubName(e.target.value)}
+                placeholder="First Name"
+                className="px-4 py-3 bg-white border border-gold/20 rounded focus:outline-none focus:ring-1 focus:ring-gold text-xs text-charcoal flex-1"
+              />
+              <input
+                type="email"
+                required
+                value={subEmail}
+                onChange={(e) => setSubEmail(e.target.value)}
+                placeholder="Email Address"
+                className="px-4 py-3 bg-white border border-gold/20 rounded focus:outline-none focus:ring-1 focus:ring-gold text-xs text-charcoal flex-1"
+              />
+              <button
+                type="submit"
+                disabled={subscribing}
+                className="px-8 py-3 bg-gold hover:bg-gold-light text-forest-dark font-sans font-bold text-xs uppercase tracking-widest rounded shadow transition-luxury cursor-pointer"
+              >
+                {subscribing ? "Subscribing..." : "Subscribe"}
+              </button>
+            </form>
+          )}
           <span className="text-[10px] text-charcoal-light font-sans font-light block">
             Respecting your privacy. Opt-out at any time.
           </span>

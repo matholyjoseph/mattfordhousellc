@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { getGenres, createGenre, updateGenre, deleteGenre } from "../../services/genreService";
+import { getTropes, createTrope, updateTrope, deleteTrope } from "../../services/tropeService";
+import { getBooks } from "../../services/bookService";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 // Custom SVG Icons for Genres
 function GenreBookIcon() {
@@ -48,7 +52,7 @@ function GenreCutleryIcon() {
 function GenreWorkbookIcon() {
   return (
     <svg className="w-4.5 h-4.5 text-charcoal/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h16a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 02 2h16a2 2 0 0 02-2v-7M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
   );
 }
@@ -112,7 +116,6 @@ function TropeLockIcon() {
   );
 }
 
-// Default fallback icon
 function GenreDefaultIcon() {
   return (
     <svg className="w-4.5 h-4.5 text-charcoal/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -121,67 +124,178 @@ function GenreDefaultIcon() {
   );
 }
 
+const getGenreIcon = (name) => {
+  const n = name.toLowerCase();
+  if (n.includes("werewolf") || n.includes("wolf") || n.includes("vampire") || n.includes("fantasy")) return <GenreBookIcon />;
+  if (n.includes("billionaire") || n.includes("corporate") || n.includes("boss") || n.includes("business") || n.includes("briefcase")) return <GenreBriefcaseIcon />;
+  if (n.includes("mm") || n.includes("lgbt") || n.includes("gay") || n.includes("bl") || n.includes("linked")) return <GenreLinkedCirclesIcon />;
+  if (n.includes("choose") || n.includes("reverse") || n.includes("harem") || n.includes("romance") || n.includes("heart") || n.includes("love")) return <GenreHeartIcon />;
+  if (n.includes("cook") || n.includes("recipe") || n.includes("food") || n.includes("dining")) return <GenreCutleryIcon />;
+  if (n.includes("work") || n.includes("guide") || n.includes("journal") || n.includes("study") || n.includes("learn")) return <GenreWorkbookIcon />;
+  return <GenreDefaultIcon />;
+};
+
+const getTropeIcon = (name) => {
+  const n = name.toLowerCase();
+  if (n.includes("reject") || n.includes("mate")) return <TropeRejectedIcon />;
+  if (n.includes("chance") || n.includes("second") || n.includes("time") || n.includes("clock")) return <TropeClockIcon />;
+  if (n.includes("fated") || n.includes("destiny") || n.includes("diamond") || n.includes("gem")) return <TropeDiamondIcon />;
+  if (n.includes("enemy") || n.includes("enemies") || n.includes("rival") || n.includes("sword") || n.includes("fight")) return <TropeSwordsIcon />;
+  if (n.includes("baby") || n.includes("secret") || n.includes("pregnancy") || n.includes("child")) return <TropeBabyIcon />;
+  if (n.includes("forbidden") || n.includes("taboo") || n.includes("secret") || n.includes("lock") || n.includes("key")) return <TropeLockIcon />;
+  return <GenreDefaultIcon />;
+};
+
 export default function AdminGenresTropes() {
-  // 1. GENRES STATE
-  const [genres, setGenres] = useState([
-    { id: "1", name: "Werewolf Romance", books: 12, icon: <GenreBookIcon /> },
-    { id: "2", name: "Billionaire Romance", books: 24, icon: <GenreBriefcaseIcon /> },
-    { id: "3", name: "MM Romance", books: 18, icon: <GenreLinkedCirclesIcon /> },
-    { id: "4", name: "Why Choose Romance", books: 9, icon: <GenreHeartIcon /> },
-    { id: "5", name: "Cookbook", books: 2, icon: <GenreCutleryIcon /> },
-    { id: "6", name: "Workbook", books: 5, icon: <GenreWorkbookIcon /> }
-  ]);
+  const [genres, setGenres] = useState([]);
+  const [tropes, setTropes] = useState([]);
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Search & Add inputs
   const [genreSearch, setGenreSearch] = useState("");
   const [newGenreName, setNewGenreName] = useState("");
-
-  // 2. TROPES STATE
-  const [tropes, setTropes] = useState([
-    { id: "1", name: "Rejected Mate", books: 8, icon: <TropeRejectedIcon /> },
-    { id: "2", name: "Second Chance", books: 15, icon: <TropeClockIcon /> },
-    { id: "3", name: "Fated Mate", books: 11, icon: <TropeDiamondIcon /> },
-    { id: "4", name: "Enemies to Lovers", books: 29, icon: <TropeSwordsIcon /> },
-    { id: "5", name: "Secret Baby", books: 4, icon: <TropeBabyIcon /> },
-    { id: "6", name: "Forbidden Romance", books: 13, icon: <TropeLockIcon /> }
-  ]);
   const [tropeSearch, setTropeSearch] = useState("");
   const [newTropeName, setNewTropeName] = useState("");
 
-  // Add handlers
-  const handleAddGenre = () => {
+  // Edit / Delete Modals state
+  const [editingItem, setEditingItem] = useState(null); // { type: 'genre'|'trope', id, name }
+  const [deletingItem, setDeletingItem] = useState(null); // { type: 'genre'|'trope', id, name }
+  const [modalInputName, setModalInputName] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Fetch initial data
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [fetchedGenres, fetchedTropes, fetchedBooks] = await Promise.all([
+        getGenres(),
+        getTropes(),
+        getBooks()
+      ]);
+      setGenres(fetchedGenres);
+      setTropes(fetchedTropes);
+      setBooks(fetchedBooks);
+    } catch (err) {
+      console.error("Error fetching genres/tropes data:", err);
+      setError("Failed to load catalog metadata. Please refresh page.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Handlers
+  const handleAddGenre = async () => {
     if (!newGenreName.trim()) return;
-    const newGenre = {
-      id: (genres.length + 1).toString(),
-      name: newGenreName.trim(),
-      books: 0,
-      icon: <GenreDefaultIcon />
-    };
-    setGenres([...genres, newGenre]);
-    setNewGenreName("");
+    try {
+      setActionLoading(true);
+      await createGenre({ name: newGenreName.trim() });
+      setNewGenreName("");
+      await fetchData();
+    } catch (err) {
+      console.error("Error creating genre:", err);
+      setError("Failed to add genre.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleAddTrope = () => {
+  const handleAddTrope = async () => {
     if (!newTropeName.trim()) return;
-    const newTrope = {
-      id: (tropes.length + 1).toString(),
-      name: newTropeName.trim(),
-      books: 0,
-      icon: <GenreDefaultIcon />
-    };
-    setTropes([...tropes, newTrope]);
-    setNewTropeName("");
+    try {
+      setActionLoading(true);
+      await createTrope({ name: newTropeName.trim() });
+      setNewTropeName("");
+      await fetchData();
+    } catch (err) {
+      console.error("Error creating trope:", err);
+      setError("Failed to add trope.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  // Filter listings based on live searches
+  const openEditModal = (type, item) => {
+    setEditingItem({ type, ...item });
+    setModalInputName(item.name);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!modalInputName.trim() || !editingItem) return;
+    try {
+      setActionLoading(true);
+      if (editingItem.type === "genre") {
+        await updateGenre(editingItem.id, { name: modalInputName.trim() });
+      } else {
+        await updateTrope(editingItem.id, { name: modalInputName.trim() });
+      }
+      setEditingItem(null);
+      await fetchData();
+    } catch (err) {
+      console.error("Error updating item:", err);
+      setError("Failed to update item.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openDeleteModal = (type, item) => {
+    setDeletingItem({ type, ...item });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingItem) return;
+    try {
+      setActionLoading(true);
+      if (deletingItem.type === "genre") {
+        await deleteGenre(deletingItem.id);
+      } else {
+        await deleteTrope(deletingItem.id);
+      }
+      setDeletingItem(null);
+      await fetchData();
+    } catch (err) {
+      console.error("Error deleting item:", err);
+      setError("Failed to delete item.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Get dynamic counts
+  const getGenreCount = (genreName) => {
+    return books.filter(b => b.genre && b.genre.toLowerCase() === genreName.toLowerCase()).length;
+  };
+
+  const getTropeCount = (tropeName) => {
+    return books.filter(b => b.tropes && b.tropes.some(t => t.toLowerCase() === tropeName.toLowerCase())).length;
+  };
+
+  // Filter listings based on searches
   const filteredGenres = genres.filter(g =>
-    g.name.toLowerCase().includes(genreSearch.toLowerCase())
+    g.name && g.name.toLowerCase().includes(genreSearch.toLowerCase())
   );
 
   const filteredTropes = tropes.filter(t =>
-    t.name.toLowerCase().includes(tropeSearch.toLowerCase())
+    t.name && t.name.toLowerCase().includes(tropeSearch.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <div className="py-24 text-center space-y-4">
+        <LoadingSpinner className="w-12 h-12 text-forest mx-auto" />
+        <p className="text-sm text-charcoal/60 font-medium">Fetching catalog structure...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-10 font-sans text-left pb-16">
+    <div className="space-y-10 font-sans text-left pb-16 relative">
       
       {/* 1. PAGE HEADER */}
       <div>
@@ -189,9 +303,17 @@ export default function AdminGenresTropes() {
           Genres & Tropes
         </h1>
         <p className="text-xs sm:text-sm text-charcoal-light font-sans font-light mt-1.5">
-          Manage the classification system for your library.
+          Manage categories and trope metadata tagging rules across all book directories.
         </p>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-xs text-red-600 font-sans leading-relaxed text-left flex items-start gap-2">
+          <span className="font-bold text-sm select-none">!</span>
+          <span>{error}</span>
+          <button onClick={() => setError("")} className="ml-auto font-bold text-red-800 hover:text-red-950">Dismiss</button>
+        </div>
+      )}
 
       {/* 2. TWO-COLUMN LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -246,7 +368,8 @@ export default function AdminGenresTropes() {
               />
               <button
                 onClick={handleAddGenre}
-                className="w-12 h-11 bg-[#C5A880] hover:bg-[#0A180E] text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-sm transition-all duration-150 cursor-pointer shrink-0"
+                disabled={actionLoading}
+                className="w-12 h-11 bg-[#C5A880] hover:bg-[#0A180E] text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-sm transition-all duration-150 cursor-pointer shrink-0 disabled:opacity-50"
               >
                 +
               </button>
@@ -260,20 +383,44 @@ export default function AdminGenresTropes() {
               filteredGenres.map((genre) => (
                 <div 
                   key={genre.id}
-                  className="flex items-center gap-3 p-3.5 hover:bg-[#F9F9F8] transition-colors rounded-2xl cursor-pointer group"
+                  className="flex items-center justify-between p-3 hover:bg-[#F9F9F8] transition-colors rounded-2xl group"
                 >
-                  {/* Circular icon container */}
-                  <div className="w-10 h-10 rounded-full bg-[#F5F4F0] flex items-center justify-center shrink-0 group-hover:bg-[#C5A880]/15 group-hover:text-gold transition-colors">
-                    {genre.icon}
+                  <div className="flex items-center gap-3">
+                    {/* Circular icon container */}
+                    <div className="w-10 h-10 rounded-full bg-[#F5F4F0] flex items-center justify-center shrink-0 group-hover:bg-[#C5A880]/15 group-hover:text-gold transition-colors">
+                      {getGenreIcon(genre.name)}
+                    </div>
+                    {/* Name and count */}
+                    <div className="text-left">
+                      <span className="block text-sm font-bold text-charcoal">
+                        {genre.name}
+                      </span>
+                      <span className="block text-[11px] font-bold text-[#C5A880] mt-0.5">
+                        {getGenreCount(genre.name)} Books
+                      </span>
+                    </div>
                   </div>
-                  {/* Name and count */}
-                  <div className="text-left">
-                    <span className="block text-sm font-bold text-charcoal">
-                      {genre.name}
-                    </span>
-                    <span className="block text-[11px] font-bold text-[#C5A880] mt-0.5">
-                      {genre.books} Books
-                    </span>
+
+                  {/* Actions (Pencil & Trash) */}
+                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => openEditModal("genre", genre)}
+                      className="w-8 h-8 rounded-lg hover:bg-gold/10 text-charcoal/60 hover:text-gold flex items-center justify-center transition-colors cursor-pointer"
+                      title="Edit genre name"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => openDeleteModal("genre", genre)}
+                      className="w-8 h-8 rounded-lg hover:bg-red-50 text-charcoal/60 hover:text-red-600 flex items-center justify-center transition-colors cursor-pointer"
+                      title="Delete genre"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               ))
@@ -335,7 +482,8 @@ export default function AdminGenresTropes() {
               />
               <button
                 onClick={handleAddTrope}
-                className="w-12 h-11 bg-[#C5A880] hover:bg-[#0A180E] text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-sm transition-all duration-150 cursor-pointer shrink-0"
+                disabled={actionLoading}
+                className="w-12 h-11 bg-[#C5A880] hover:bg-[#0A180E] text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-sm transition-all duration-150 cursor-pointer shrink-0 disabled:opacity-50"
               >
                 +
               </button>
@@ -349,20 +497,44 @@ export default function AdminGenresTropes() {
               filteredTropes.map((trope) => (
                 <div 
                   key={trope.id}
-                  className="flex items-center gap-3 p-3.5 hover:bg-[#F9F9F8] transition-colors rounded-2xl cursor-pointer group"
+                  className="flex items-center justify-between p-3 hover:bg-[#F9F9F8] transition-colors rounded-2xl group"
                 >
-                  {/* Circular icon container */}
-                  <div className="w-10 h-10 rounded-full bg-[#F5F4F0] flex items-center justify-center shrink-0 group-hover:bg-[#C5A880]/15 group-hover:text-gold transition-colors">
-                    {trope.icon}
+                  <div className="flex items-center gap-3">
+                    {/* Circular icon container */}
+                    <div className="w-10 h-10 rounded-full bg-[#F5F4F0] flex items-center justify-center shrink-0 group-hover:bg-[#C5A880]/15 group-hover:text-gold transition-colors">
+                      {getTropeIcon(trope.name)}
+                    </div>
+                    {/* Name and count */}
+                    <div className="text-left">
+                      <span className="block text-sm font-bold text-charcoal">
+                        {trope.name}
+                      </span>
+                      <span className="block text-[11px] font-bold text-[#C5A880] mt-0.5">
+                        {getTropeCount(trope.name)} Books
+                      </span>
+                    </div>
                   </div>
-                  {/* Name and count */}
-                  <div className="text-left">
-                    <span className="block text-sm font-bold text-charcoal">
-                      {trope.name}
-                    </span>
-                    <span className="block text-[11px] font-bold text-[#C5A880] mt-0.5">
-                      {trope.books} Books
-                    </span>
+
+                  {/* Actions (Pencil & Trash) */}
+                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => openEditModal("trope", trope)}
+                      className="w-8 h-8 rounded-lg hover:bg-gold/10 text-charcoal/60 hover:text-gold flex items-center justify-center transition-colors cursor-pointer"
+                      title="Edit trope name"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => openDeleteModal("trope", trope)}
+                      className="w-8 h-8 rounded-lg hover:bg-red-50 text-charcoal/60 hover:text-red-600 flex items-center justify-center transition-colors cursor-pointer"
+                      title="Delete trope"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               ))
@@ -376,6 +548,88 @@ export default function AdminGenresTropes() {
         </div>
 
       </div>
+
+      {/* EDIT MODAL */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-[#E5E3DC] rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="text-left">
+              <h3 className="font-serif font-bold text-xl text-charcoal">
+                Edit {editingItem.type === "genre" ? "Genre" : "Trope"}
+              </h3>
+              <p className="text-xs text-charcoal/50 mt-1 font-sans">
+                Adjust name catalog mapping values.
+              </p>
+            </div>
+            
+            <div className="space-y-1 text-left">
+              <label className="text-[10px] uppercase font-bold text-charcoal/50 tracking-wider">
+                Name
+              </label>
+              <input 
+                type="text"
+                value={modalInputName}
+                onChange={(e) => setModalInputName(e.target.value)}
+                className="w-full bg-[#F5F4F0]/65 border border-[#E5E3DC]/60 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-gold text-charcoal font-sans font-semibold"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setEditingItem(null)}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 bg-[#FAF9F5] border border-[#E5E3DC] text-charcoal hover:bg-[#F5F4F0] rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer select-none"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={actionLoading || !modalInputName.trim()}
+                className="flex-1 py-2.5 bg-[#1A3020] text-cream hover:bg-[#C5A880] hover:text-[#1A3020] rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer select-none flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {actionLoading ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deletingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white border border-red-100 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="text-left space-y-2">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 font-bold text-lg select-none">
+                !
+              </div>
+              <h3 className="font-serif font-bold text-xl text-charcoal">
+                Delete {deletingItem.type === "genre" ? "Genre" : "Trope"}?
+              </h3>
+              <p className="text-xs text-charcoal/60 leading-relaxed font-sans">
+                Are you sure you want to delete <span className="font-bold text-charcoal">"{deletingItem.name}"</span>?
+                This action is permanent and cannot be undone. Books currently referencing this metadata will show blank values.
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setDeletingItem(null)}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 bg-[#FAF9F5] border border-[#E5E3DC] text-charcoal hover:bg-[#F5F4F0] rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer select-none"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer select-none disabled:opacity-50"
+              >
+                {actionLoading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. COPYRIGHT FOOTER */}
       <div className="border-t border-[#E5E3DC] mt-16 pt-5 pb-8 flex flex-col sm:flex-row items-center justify-between text-[11px] font-medium text-charcoal/40 font-sans gap-4 select-none">

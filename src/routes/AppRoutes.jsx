@@ -16,9 +16,12 @@ import BlogDetail from "../pages/public/BlogDetail";
 import About from "../pages/public/About";
 import Newsletter from "../pages/public/Newsletter";
 import Contact from "../pages/public/Contact";
+import UserLogin from "../pages/public/UserLogin";
+import UserSignup from "../pages/public/UserSignup";
 
 // Admin Pages
 import AdminLogin from "../pages/admin/AdminLogin";
+
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminBooks from "../pages/admin/AdminBooks";
 import AdminNewBook from "../pages/admin/AdminNewBook";
@@ -49,7 +52,10 @@ export default function AppRoutes() {
         <Route path="/about" element={<About />} />
         <Route path="/newsletter" element={<Newsletter />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/login" element={<UserLogin />} />
+        <Route path="/signup" element={<UserSignup />} />
       </Route>
+
 
       {/* Admin Login Route (Independent Layout) */}
       <Route path="/admin/login" element={<AdminLogin />} />
