@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-forest: #1A3020;
+  --color-forest-light: #2D4C35;
+  --color-forest-dark: #0F1D13;
+  --color-cream: #FDFBF7;
+  --color-cream-dark: #F3ECE0;
+  --color-gold: #C5A880;
+  --color-gold-light: #DFCDA9;
+  --color-gold-dark: #A58860;
+  --color-charcoal: #2C302E;
+  --color-charcoal-light: #4D5350;
+
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Base custom styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-cream);
+  color: var(--color-charcoal);
+  min-height: 100vh;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  color: var(--color-forest-dark);
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-dark);
+}
+
+/* Book Cover Shadows & Glows */
+.book-shadow {
+  box-shadow: 
+    0 15px 35px rgba(26, 48, 32, 0.18), 
+    0 5px 15px rgba(0, 0, 0, 0.08),
+    1px 0 2px rgba(255, 255, 255, 0.2) inset;
+}
+
+.book-shadow-hover {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.book-shadow-hover:hover {
+  transform: translateY(-6px) rotate(1deg);
+  box-shadow: 
+    0 22px 40px rgba(26, 48, 32, 0.25), 
+    0 8px 20px rgba(0, 0, 0, 0.1),
+    1px 0 2px rgba(255, 255, 255, 0.3) inset;
+}
+
+/* Class for smooth transitions */
+.transition-luxury {
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
