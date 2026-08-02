@@ -4,6 +4,7 @@ import {
   FiShoppingCart, FiBookOpen, 
   FiArrowRight, FiArrowLeft 
 } from "react-icons/fi";
+import { FaAmazon, FaApple, FaGooglePlay, FaBook, FaGlobe } from "react-icons/fa";
 import Container from "../../components/layout/Container";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { getBookBySlug, getBooks } from "../../services/bookService";
@@ -17,6 +18,15 @@ const RETAILER_NAMES = {
   googlePlay: "Google Play",
   barnesNoble: "Barnes & Noble",
   other: "Other Retailer"
+};
+
+const RETAILER_ICONS = {
+  amazon: <FaAmazon className="text-[#FF9900] w-4 h-4 shrink-0" />,
+  appleBooks: <FaApple className="text-[#A3AAAE] w-4 h-4 shrink-0" />,
+  kobo: <FaBook className="text-[#007EA7] w-4 h-4 shrink-0" />,
+  draft2Digital: <FaGlobe className="text-[#00A896] w-4 h-4 shrink-0" />,
+  googlePlay: <FaGooglePlay className="text-[#3BCCFF] w-4 h-4 shrink-0" />,
+  barnesNoble: <FaBook className="text-[#003B2F] w-4 h-4 shrink-0" />
 };
 
 export default function BookDetail() {
@@ -181,7 +191,7 @@ export default function BookDetail() {
                 {book.genre && (
                   <span className={`font-sans font-semibold text-[10px] px-3 py-1 rounded-full border ${
                     hasBanner 
-                      ? "bg-gold/20 text-gold-light border-gold/20" 
+                      ? "bg-white/10 !text-white border-white/20" 
                       : "bg-[#F4E6D6] text-gold-dark border border-gold/10"
                   }`}>
                     {book.genre}
@@ -189,7 +199,7 @@ export default function BookDetail() {
                 )}
                 <span className={`font-sans font-semibold text-[10px] px-3 py-1 rounded-full border ${
                   hasBanner 
-                    ? "bg-white/10 text-cream/80 border-white/5" 
+                    ? "bg-white/10 !text-white/90 border-white/10" 
                     : "bg-[#EBEBEB] text-charcoal-light border-transparent"
                 }`}>
                   {book.language || "English"}
@@ -197,10 +207,10 @@ export default function BookDetail() {
                 <span className={`font-sans font-semibold text-[10px] px-3 py-1 rounded-full border ${
                   book.status === "published" 
                     ? hasBanner 
-                      ? "bg-green-950/40 text-green-300 border-green-900/50" 
+                      ? "bg-green-500/20 !text-green-200 border-green-400/30" 
                       : "bg-[#E2F0D9] text-[#385723] border-green-200" 
                     : hasBanner 
-                      ? "bg-amber-950/40 text-amber-300 border-amber-900/50" 
+                      ? "bg-amber-500/20 !text-amber-200 border-amber-400/30" 
                       : "bg-amber-50 text-amber-800 border-amber-100"
                 }`}>
                   {book.status === "published" ? "Available Now" : "Coming Soon"}
@@ -210,18 +220,18 @@ export default function BookDetail() {
               {/* Title & Subtitle */}
               <div className="space-y-1">
                 <span className={`text-[10px] uppercase font-bold tracking-widest font-sans block ${
-                  hasBanner ? "text-gold" : "text-charcoal-light/75"
+                  hasBanner ? "!text-white/80" : "text-charcoal-light/75"
                 }`}>
                   {book.penName || "Elias Thorne"}
                 </span>
                 <h1 className={`text-3xl sm:text-5xl font-serif font-bold tracking-tight leading-tight ${
-                  hasBanner ? "text-cream" : "text-forest-dark"
+                  hasBanner ? "!text-white" : "text-forest-dark"
                 }`}>
                   {book.title}
                 </h1>
                 {book.subtitle && (
                   <p className={`text-sm sm:text-base italic font-serif mt-1 font-light ${
-                    hasBanner ? "text-cream/80" : "text-charcoal-light"
+                    hasBanner ? "!text-white/95" : "text-charcoal-light"
                   }`}>
                     {book.subtitle}
                   </p>
@@ -232,7 +242,7 @@ export default function BookDetail() {
               {book.shortHook && (
                 <div className="border-l-4 border-gold pl-4 py-1.5 my-4">
                   <p className={`text-base sm:text-lg font-serif font-light italic leading-relaxed ${
-                    hasBanner ? "text-cream/90" : "text-charcoal"
+                    hasBanner ? "!text-white/90" : "text-charcoal"
                   }`}>
                     "{book.shortHook}"
                   </p>
@@ -258,7 +268,11 @@ export default function BookDetail() {
                 )}
                 <button
                   onClick={handleScrollToDescription}
-                  className="px-6 py-2.5 border border-gold/40 hover:bg-gold/10 text-forest rounded-full text-xs font-bold uppercase tracking-widest transition-luxury cursor-pointer"
+                  className={`px-6 py-2.5 border rounded-full text-xs font-bold uppercase tracking-widest transition-luxury cursor-pointer ${
+                    hasBanner 
+                      ? "!text-white border-white/30 hover:bg-white/10 hover:border-white" 
+                      : "border-gold/40 hover:bg-gold/10 text-forest"
+                  }`}
                 >
                   Read Description
                 </button>
@@ -284,9 +298,10 @@ export default function BookDetail() {
                   href={url}
                   target="_blank"
                   rel="noreferrer"
-                  className="bg-white border border-gold/15 hover:border-gold px-4 py-2 rounded text-xs font-bold text-forest shadow-sm transition-luxury"
+                  className="bg-white border border-gold/15 hover:border-gold px-5 py-2.5 rounded-lg text-xs font-bold text-forest shadow-sm transition-luxury flex items-center gap-2"
                 >
-                  {RETAILER_NAMES[key] || key}
+                  {RETAILER_ICONS[key] || <FaBook className="text-gold w-4 h-4 shrink-0" />}
+                  <span>{RETAILER_NAMES[key] || key}</span>
                 </a>
               ))}
             </div>
@@ -367,11 +382,37 @@ export default function BookDetail() {
                   </div>
                 </div>
 
-                <div className="flex justify-center pt-4 opacity-40">
-                  <svg className="w-10 h-10 text-gold fill-current" viewBox="0 0 24 24">
-                    <path d="M12 2L1 21h22L12 2zm0 4l7.5 13h-15L12 6z"/>
-                  </svg>
-                </div>
+                {book.platformLinks?.amazon ? (
+                  <div className="pt-4">
+                    <a
+                      href={book.platformLinks.amazon}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-3 bg-[#FF9900] hover:bg-[#E58A00] text-forest-dark rounded-lg text-center text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm transition-luxury"
+                    >
+                      <FaAmazon size={14} />
+                      Amazon Buy Now
+                    </a>
+                  </div>
+                ) : primaryBuyUrl && primaryBuyUrl !== "#" ? (
+                  <div className="pt-4">
+                    <a
+                      href={primaryBuyUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-3 bg-forest hover:bg-forest-light text-cream rounded-lg text-center text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm transition-luxury"
+                    >
+                      <FiShoppingCart size={13} />
+                      Buy Now
+                    </a>
+                  </div>
+                ) : (
+                  <div className="flex justify-center pt-4 opacity-40">
+                    <svg className="w-10 h-10 text-gold fill-current" viewBox="0 0 24 24">
+                      <path d="M12 2L1 21h22L12 2zm0 4l7.5 13h-15L12 6z"/>
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
 
