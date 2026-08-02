@@ -158,7 +158,7 @@ export default function Home() {
                 <Button to="/books" variant="secondary" className="rounded-full px-8 font-bold text-xs uppercase tracking-wider">
                   Explore Books
                 </Button>
-                <Button to={`/books/${latestBook.slug}`} variant="outline" className="rounded-full px-8 text-cream border-cream/35 hover:bg-cream/10 hover:border-cream font-bold text-xs uppercase tracking-wider">
+                <Button to={`/books/${latestBook.slug}`} variant="outline" className="rounded-full px-8 text-white border-white/30 hover:bg-white/10 hover:border-white font-bold text-xs uppercase tracking-wider">
                   Latest Release
                 </Button>
               </div>

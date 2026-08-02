@@ -13,11 +13,13 @@ export default function Button({
 }) {
   const baseStyle = "inline-flex items-center justify-center font-sans font-semibold tracking-wide rounded transition-luxury focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
   
+  const hasTextColor = className.split(" ").some(c => c.startsWith("text-"));
+  
   const variants = {
     primary: "bg-forest hover:bg-forest-light text-cream shadow-md hover:shadow-lg hover:shadow-forest/15",
     secondary: "bg-gold hover:bg-gold-light text-forest-dark shadow-md hover:shadow-lg hover:shadow-gold/15",
-    outline: "border-2 border-gold text-forest hover:bg-gold/5",
-    text: "text-forest hover:text-forest-light underline underline-offset-4 decoration-gold/50 hover:decoration-gold"
+    outline: `border-2 border-gold hover:bg-gold/5 ${hasTextColor ? "" : "text-forest"}`,
+    text: `${hasTextColor ? "" : "text-forest"} hover:text-forest-light underline underline-offset-4 decoration-gold/50 hover:decoration-gold`
   };
 
   const sizes = {

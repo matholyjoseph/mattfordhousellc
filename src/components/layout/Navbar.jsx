@@ -33,11 +33,11 @@ export default function Navbar() {
       <Container>
         <div className="flex items-center justify-between h-20">
           
-          {/* Brand Logo - Serif AuthorHub */}
+          {/* Brand Logo - Serif Mattfordhousellc */}
           <div className="flex-shrink-0">
             <Link to="/" className="group">
               <span className="font-serif font-bold text-2xl tracking-tight text-charcoal group-hover:text-gold transition-colors">
-                AuthorHub
+                Mattfordhousellc
               </span>
             </Link>
           </div>

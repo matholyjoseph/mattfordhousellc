@@ -10,7 +10,7 @@ export default function Footer() {
         {/* Logo */}
         <div className="flex justify-center">
           <Link to="/" className="font-serif font-bold text-3xl tracking-tight text-cream hover:text-gold transition-colors">
-            AuthorHub
+            Mattfordhousellc
           </Link>
         </div>
 
@@ -27,7 +27,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="text-xs text-cream/45 max-w-md mx-auto leading-relaxed font-light">
-          <p>© 2024 Author Hub. All rights reserved. Crafted for the discovering reader.</p>
+          <p>© 2024 Mattfordhousellc. All rights reserved. Crafted for the discovering reader.</p>
         </div>
 
         {/* Bottom Icons */}
