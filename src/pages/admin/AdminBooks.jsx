@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FiSearch, FiSliders, FiStar, FiEdit3, FiTrash2, FiTrendingUp, FiImage, FiBook } from "react-icons/fi";
-import { getBooks, deleteBook, updateBook } from "../../services/bookService";
+import { FiSearch, FiSliders, FiStar, FiEdit3, FiTrash2, FiTrendingUp, FiImage, FiBook, FiRefreshCw } from "react-icons/fi";
+import { getBooks, deleteBook, updateBook, createBook } from "../../services/bookService";
+import { createReview, getReviews } from "../../services/reviewService";
+import { getPenNames, createPenName } from "../../services/penNameService";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import joelBooks from "../../data/joel_books.json";
 
 export default function AdminBooks() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
   
   // Interactive search & filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,6 +37,98 @@ export default function AdminBooks() {
   useEffect(() => {
     loadBooks();
   }, []);
+
+  const handleImportJoelBooks = async () => {
+    if (!window.confirm("Do you want to import Joel Hardiman's books and reviews from the scraped catalog into the database?")) return;
+    
+    setImporting(true);
+    let successCount = 0;
+    try {
+      // Ensure "Joel Hardiman" is registered as an active pen name
+      const penNames = await getPenNames();
+      const hasJoel = penNames.some(p => p.name.toLowerCase() === "joel hardiman");
+      if (!hasJoel) {
+        console.log("Creating pen name: Joel Hardiman");
+        await createPenName({
+          name: "Joel Hardiman",
+          status: "active",
+          bio: "Joel Hardiman is a contemporary romance author specializing in high-tension, emotional second chance romance novels.",
+          slug: "joel-hardiman",
+          profileImage: ""
+        });
+      }
+
+      // Fetch existing books to prevent duplicates
+      const existingBooks = await getBooks();
+      const existingSlugs = new Set(existingBooks.map(b => b.slug));
+
+      // Fetch existing reviews to prevent duplicates
+      const existingReviews = await getReviews();
+      const existingReviewKeys = new Set(existingReviews.map(r => `${r.book}-${r.reviewer}`));
+
+      for (const book of joelBooks) {
+        // Skip duplicate books
+        if (existingSlugs.has(book.slug)) {
+          console.log(`Book already exists: ${book.title}`);
+          continue;
+        }
+
+        // Add book doc
+        const bookDoc = {
+          title: book.title,
+          subtitle: book.subtitle || "",
+          description: book.description,
+          coverImage: book.coverImage,
+          bannerImage: "",
+          genre: "Second Chance Romance",
+          status: "published",
+          language: "English",
+          penName: "Joel Hardiman",
+          slug: book.slug,
+          platformLinks: {
+            amazon: book.amazonLink
+          },
+          rating: book.rating,
+          reviewCount: book.reviewCount,
+          featured: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        const docRef = await createBook(bookDoc);
+        successCount++;
+
+        // Add reviews for the book
+        if (book.reviews && book.reviews.length > 0) {
+          for (const rev of book.reviews) {
+            const revKey = `${book.title}-${rev.reviewer}`;
+            if (existingReviewKeys.has(revKey)) continue;
+
+            const reviewDoc = {
+              reviewer: rev.reviewer,
+              source: rev.source,
+              book: book.title,
+              rating: rev.rating,
+              status: "Published",
+              comment: rev.comment,
+              date: rev.date,
+              createdAt: new Date()
+            };
+
+            await createReview(reviewDoc);
+          }
+        }
+      }
+
+      alert(`Successfully imported ${successCount} new books and their reviews into the database catalog!`);
+      loadBooks();
+    } catch (err) {
+      console.error("Error importing books:", err);
+      alert("Import failed: " + err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   // Toggle single featured state directly in Firestore
   const toggleFeatured = async (id, currentVal) => {
@@ -110,12 +206,22 @@ export default function AdminBooks() {
             Manage Books
           </h1>
         </div>
-        <Link
-          to="/admin/books/new"
-          className="px-5 py-2.5 bg-[#0A180E] hover:bg-[#C5A880] text-white hover:text-[#0A180E] font-sans font-bold text-xs uppercase tracking-wider rounded-xl shadow transition-all duration-150 flex items-center gap-1.5"
-        >
-          <span>+ Add Book</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleImportJoelBooks}
+            disabled={importing}
+            className={`px-5 py-2.5 bg-[#C5A880] hover:bg-[#0A180E] text-[#0A180E] hover:text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl shadow transition-all duration-150 flex items-center gap-1.5 ${importing ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <FiRefreshCw className={`w-3.5 h-3.5 ${importing ? 'animate-spin' : ''}`} />
+            <span>{importing ? "Syncing..." : "Sync Joel's Books"}</span>
+          </button>
+          <Link
+            to="/admin/books/new"
+            className="px-5 py-2.5 bg-[#0A180E] hover:bg-[#C5A880] text-white hover:text-[#0A180E] font-sans font-bold text-xs uppercase tracking-wider rounded-xl shadow transition-all duration-150 flex items-center gap-1.5"
+          >
+            <span>+ Add Book</span>
+          </Link>
+        </div>
       </div>
 
       {/* 2. SEARCH AND FILTER CARD */}

@@ -9,6 +9,7 @@ import Container from "../../components/layout/Container";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { getBookBySlug, getBooks } from "../../services/bookService";
 import { createSubscriber } from "../../services/subscriberService";
+import { getReviews } from "../../services/reviewService";
 
 const RETAILER_NAMES = {
   amazon: "Amazon",
@@ -35,6 +36,7 @@ export default function BookDetail() {
 
   const [book, setBook] = useState(null);
   const [relatedBooks, setRelatedBooks] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -75,6 +77,17 @@ export default function BookDetail() {
             b => b.genre && bookData.genre && b.genre.toLowerCase() === bookData.genre.toLowerCase()
           );
           setRelatedBooks(sameGenre.length > 0 ? sameGenre.slice(0, 3) : related.slice(0, 3));
+        }
+
+        // Fetch book reviews
+        try {
+          const allReviews = await getReviews();
+          const bookReviews = allReviews.filter(
+            r => r.book === bookData.title && r.status === "Published"
+          );
+          setReviews(bookReviews);
+        } catch (err) {
+          console.error("Error loading reviews for book:", err);
         }
       } catch (err) {
         console.error("Error loading book detail:", err);
@@ -340,6 +353,54 @@ export default function BookDetail() {
                   </div>
                 </div>
               )}
+
+              {/* Reader Reviews Section */}
+              <div className="space-y-6 pt-8 border-t border-gold/10 text-left">
+                <h3 className="font-serif font-bold text-2xl sm:text-3xl text-forest-dark">
+                  Reader Reviews
+                </h3>
+                
+                {reviews.length > 0 ? (
+                  <div className="space-y-6">
+                    {reviews.map((r, index) => (
+                      <div key={r.id || index} className="bg-white p-6 rounded-xl border border-gold/10 shadow-sm space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-cream-dark border border-gold/20 flex items-center justify-center font-bold text-xs text-gold-dark font-sans select-none">
+                              {r.reviewer ? r.reviewer.split(" ").map(n => n[0]).join("").toUpperCase() : "RC"}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-xs text-charcoal font-sans">{r.reviewer}</h4>
+                              <span className="text-[10px] text-charcoal-light/60 font-sans block">{r.date}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {r.source && (
+                              <span className="text-[9px] font-sans font-bold bg-[#E2F0D9] text-[#385723] px-2 py-0.5 rounded border border-green-200 uppercase tracking-wide">
+                                {r.source}
+                              </span>
+                            )}
+                            <div className="flex text-gold">
+                              {Array.from({ length: r.rating || 5 }).map((_, i) => (
+                                <svg key={i} className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs sm:text-sm text-charcoal-light leading-relaxed font-sans font-light">
+                          {r.comment}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-charcoal/40 italic text-xs font-sans">
+                    No reader reviews published for this edition yet.
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right Column (book metadata card) */}
