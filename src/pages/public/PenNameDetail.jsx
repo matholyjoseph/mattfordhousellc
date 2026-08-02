@@ -298,7 +298,7 @@ export default function PenNameDetail() {
               {authorBooks.map((b, idx) => (
                 <div key={b.id} className="space-y-4 flex flex-col text-left group">
                   <Link to={`/books/${b.slug}`}>
-                    <SeriesBookCover coverImage={b.coverImage} title={b.title} index={idx} />
+                    <SeriesBookCover coverImage={b.coverImage || b.coverUrl} title={b.title} index={idx} />
                   </Link>
                   <h3 className="font-serif font-bold text-xl text-forest-dark mt-2 group-hover:text-gold transition-colors line-clamp-1">
                     {b.title}
@@ -403,7 +403,7 @@ export default function PenNameDetail() {
               {authorBooks.map((b) => (
                 <div key={b.id} className="bg-white p-5 rounded-2xl border border-gold/10 hover:border-gold/25 hover:shadow-md transition-luxury flex flex-col justify-between">
                   <div className="space-y-4">
-                    <BibliographyCover coverImage={b.coverImage} title={b.title} />
+                    <BibliographyCover coverImage={b.coverImage || b.coverUrl} title={b.title} />
                     <div className="space-y-1 text-left">
                       <h4 className="font-serif font-bold text-base text-forest-dark line-clamp-1">
                         {b.title}

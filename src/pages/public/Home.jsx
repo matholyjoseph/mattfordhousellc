@@ -88,12 +88,15 @@ export default function Home() {
   }
 
   // Get covers for Hero Section (fallback to assets if empty)
-  const coverBooks = books.filter(b => b.coverImage && b.coverImage.trim() !== "").slice(0, 4);
+  const coverBooks = books.filter(b => {
+    const img = b.coverImage || b.coverUrl;
+    return img && img.trim() !== "";
+  }).slice(0, 4);
   const coverSrcs = [
-    coverBooks[0]?.coverImage || "/whispers_in_the_pines.png",
-    coverBooks[1]?.coverImage || "/emerald_crown.png",
-    coverBooks[2]?.coverImage || "/sinking_roots.png",
-    coverBooks[3]?.coverImage || "/glass_orchard.png"
+    coverBooks[0]?.coverImage || coverBooks[0]?.coverUrl || "/whispers_in_the_pines.png",
+    coverBooks[1]?.coverImage || coverBooks[1]?.coverUrl || "/emerald_crown.png",
+    coverBooks[2]?.coverImage || coverBooks[2]?.coverUrl || "/sinking_roots.png",
+    coverBooks[3]?.coverImage || coverBooks[3]?.coverUrl || "/glass_orchard.png"
   ];
   const coverSlugs = [
     coverBooks[0]?.slug || "whispers-in-the-pines",
@@ -265,9 +268,9 @@ export default function Home() {
                   transition={{ duration: 0.5 }}
                 >
                   <Link to={`/books/${book.slug}`} className="block relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-cream-dark mb-4 border border-gold/10 shadow-sm">
-                    {book.coverImage ? (
+                    {(book.coverImage || book.coverUrl) ? (
                       <img
-                        src={book.coverImage}
+                        src={book.coverImage || book.coverUrl}
                         alt={book.title}
                         className="w-full h-full object-cover book-shadow book-shadow-hover rounded-lg"
                       />

@@ -13,8 +13,8 @@ function ConnectedBookCard({ book }) {
   return (
     <div className="bg-[#F5F4F0] p-6 rounded-2xl border border-gold/10 shadow-[0_4px_20px_rgba(0,0,0,0.01)] space-y-4 text-left">
       <div className="w-full aspect-[2/3] bg-[#1E3A27] rounded-lg border border-gold/30 p-2 flex flex-col justify-between shadow-md relative overflow-hidden select-none">
-        {book.coverImage ? (
-          <img src={book.coverImage} alt={book.title} className="absolute inset-0 w-full h-full object-cover" />
+        {(book.coverImage || book.coverUrl) ? (
+          <img src={book.coverImage || book.coverUrl} alt={book.title} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <>
             <div className="absolute inset-0 opacity-20 flex items-center justify-center">

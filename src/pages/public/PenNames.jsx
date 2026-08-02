@@ -257,7 +257,7 @@ export default function PenNames() {
                     >
                       <div className="flex items-center gap-4">
                         <BookCoverPlaceholder 
-                          coverImage={latestBook.coverImage} 
+                          coverImage={latestBook.coverImage || latestBook.coverUrl} 
                           initials={latestBook.title ? latestBook.title.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() : "BK"} 
                         />
                         <div className="text-left font-sans">

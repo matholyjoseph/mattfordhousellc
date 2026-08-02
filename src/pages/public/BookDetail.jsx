@@ -131,17 +131,35 @@ export default function BookDetail() {
   const activeRetailers = Object.entries(links).filter(([_, url]) => url && url.trim() !== "");
   const primaryBuyUrl = activeRetailers[0]?.[1] || "#";
 
+  const hasBanner = book.bannerImage && book.bannerImage.trim() !== "";
+  const heroBgClass = hasBanner 
+    ? "relative border-b border-gold/20 text-cream" 
+    : "bg-cream-dark/20 border-b border-gold/15 text-charcoal";
+  
+  const heroStyle = hasBanner
+    ? {
+        backgroundImage: `linear-gradient(to right, rgba(10, 20, 13, 0.96) 40%, rgba(10, 20, 13, 0.75) 100%), url(${book.bannerImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {};
+
   return (
     <div className="pb-20 font-sans text-left bg-cream">
       
       {/* 1. TOP HERO SECTION */}
-      <section className="bg-cream-dark/20 border-b border-gold/15 py-16">
-        <Container>
+      <section className={`${heroBgClass} py-16`} style={heroStyle}>
+        {hasBanner && (
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0A140D]/95 via-[#0A140D]/90 to-[#0A140D]/95 lg:hidden z-0" />
+        )}
+        <Container className="relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
             
             {/* Left Cover Art */}
             <div className="lg:col-span-4 flex justify-center">
-              <div className="relative p-2 bg-white border border-gold/15 rounded-lg shadow-md max-w-[250px] sm:max-w-[300px] w-full">
+              <div className={`relative p-2 rounded-lg shadow-md max-w-[250px] sm:max-w-[300px] w-full border ${
+                hasBanner ? "bg-[#0A140D]/40 border-gold/30" : "bg-white border-gold/15"
+              }`}>
                 {book.coverImage ? (
                   <img
                     src={book.coverImage}
@@ -161,17 +179,29 @@ export default function BookDetail() {
               {/* Badges */}
               <div className="flex flex-wrap gap-2 text-xs">
                 {book.genre && (
-                  <span className="bg-[#F4E6D6] text-gold-dark font-sans font-semibold text-[10px] px-3 py-1 rounded-full border border-gold/10">
+                  <span className={`font-sans font-semibold text-[10px] px-3 py-1 rounded-full border ${
+                    hasBanner 
+                      ? "bg-gold/20 text-gold-light border-gold/20" 
+                      : "bg-[#F4E6D6] text-gold-dark border border-gold/10"
+                  }`}>
                     {book.genre}
                   </span>
                 )}
-                <span className="bg-[#EBEBEB] text-charcoal-light font-sans font-semibold text-[10px] px-3 py-1 rounded-full">
+                <span className={`font-sans font-semibold text-[10px] px-3 py-1 rounded-full border ${
+                  hasBanner 
+                    ? "bg-white/10 text-cream/80 border-white/5" 
+                    : "bg-[#EBEBEB] text-charcoal-light border-transparent"
+                }`}>
                   {book.language || "English"}
                 </span>
                 <span className={`font-sans font-semibold text-[10px] px-3 py-1 rounded-full border ${
                   book.status === "published" 
-                    ? "bg-[#E2F0D9] text-[#385723] border-green-200" 
-                    : "bg-amber-50 text-amber-800 border-amber-100"
+                    ? hasBanner 
+                      ? "bg-green-950/40 text-green-300 border-green-900/50" 
+                      : "bg-[#E2F0D9] text-[#385723] border-green-200" 
+                    : hasBanner 
+                      ? "bg-amber-950/40 text-amber-300 border-amber-900/50" 
+                      : "bg-amber-50 text-amber-800 border-amber-100"
                 }`}>
                   {book.status === "published" ? "Available Now" : "Coming Soon"}
                 </span>
@@ -179,14 +209,20 @@ export default function BookDetail() {
 
               {/* Title & Subtitle */}
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-charcoal-light/75 font-sans block">
+                <span className={`text-[10px] uppercase font-bold tracking-widest font-sans block ${
+                  hasBanner ? "text-gold" : "text-charcoal-light/75"
+                }`}>
                   {book.penName || "Elias Thorne"}
                 </span>
-                <h1 className="text-3xl sm:text-5xl font-serif font-bold text-forest-dark tracking-tight leading-tight">
+                <h1 className={`text-3xl sm:text-5xl font-serif font-bold tracking-tight leading-tight ${
+                  hasBanner ? "text-cream" : "text-forest-dark"
+                }`}>
                   {book.title}
                 </h1>
                 {book.subtitle && (
-                  <p className="text-sm sm:text-base text-charcoal-light italic font-serif mt-1 font-light">
+                  <p className={`text-sm sm:text-base italic font-serif mt-1 font-light ${
+                    hasBanner ? "text-cream/80" : "text-charcoal-light"
+                  }`}>
                     {book.subtitle}
                   </p>
                 )}
@@ -195,7 +231,9 @@ export default function BookDetail() {
               {/* Short Hook */}
               {book.shortHook && (
                 <div className="border-l-4 border-gold pl-4 py-1.5 my-4">
-                  <p className="text-base sm:text-lg text-charcoal font-serif font-light italic leading-relaxed">
+                  <p className={`text-base sm:text-lg font-serif font-light italic leading-relaxed ${
+                    hasBanner ? "text-cream/90" : "text-charcoal"
+                  }`}>
                     "{book.shortHook}"
                   </p>
                 </div>
@@ -366,9 +404,9 @@ export default function BookDetail() {
               {relatedBooks.map((b) => (
                 <div key={b.id} className="group space-y-4 text-left">
                   <Link to={`/books/${b.slug}`} className="block relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-cream-dark border border-gold/10 shadow-sm">
-                    {b.coverImage ? (
+                    {(b.coverImage || b.coverUrl) ? (
                       <img
-                        src={b.coverImage}
+                        src={b.coverImage || b.coverUrl}
                         alt={b.title}
                         className="w-full h-full object-cover book-shadow book-shadow-hover rounded-lg"
                       />

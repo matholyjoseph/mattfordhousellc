@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { FiShoppingCart, FiBookOpen, FiArrowRight, FiCalendar } from "react-icons/fi";
 
 export default function BookCard({ book }) {
-  const { title, slug, coverUrl, penName, genres = [], description, status, releaseDate } = book;
+  const { title, slug, coverImage, coverUrl, penName, genres = [], description, status, releaseDate } = book;
+  const displayCover = coverImage || coverUrl || "";
   const primaryGenre = genres[0] || "Fiction";
   const isComingSoon = status === "Coming Soon";
 
@@ -11,11 +12,17 @@ export default function BookCard({ book }) {
       
       {/* Cover Image */}
       <Link to={`/books/${slug}`} className="block relative overflow-hidden bg-cream rounded-lg mb-5 aspect-[2/3] w-full">
-        <img
-          src={coverUrl}
-          alt={title}
-          className="w-full h-full object-cover rounded-lg book-shadow book-shadow-hover"
-        />
+        {displayCover ? (
+          <img
+            src={displayCover}
+            alt={title}
+            className="w-full h-full object-cover rounded-lg book-shadow book-shadow-hover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-b from-[#122217] to-forest-dark border border-gold/30 rounded flex flex-col items-center justify-center text-center p-6 text-gold font-serif select-none">
+            <span className="font-bold text-sm">{title}</span>
+          </div>
+        )}
         {status && (
           <div className="absolute top-3 right-3">
             <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 bg-forest text-cream rounded shadow">

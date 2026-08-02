@@ -15,8 +15,8 @@ function SideBookCover({ book }) {
       to={`/books/${book.slug}`}
       className="w-20 h-28 bg-[#122217] rounded shadow border border-gold/30 flex flex-col justify-between p-2 text-center relative overflow-hidden select-none group shrink-0"
     >
-      {book.coverImage ? (
-        <img src={book.coverImage} alt={book.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform" />
+      {(book.coverImage || book.coverUrl) ? (
+        <img src={book.coverImage || book.coverUrl} alt={book.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform" />
       ) : (
         <>
           <div className="absolute inset-0 opacity-20 flex items-center justify-center">
